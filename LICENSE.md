@@ -1,5 +1,6 @@
 MIT License
 
+Copyright (c) 2024 Dimitri Tarassenko
 Copyright (c) 2018 Chris Marsh
 
 Permission is hereby granted, free of charge, to any person obtaining a copy

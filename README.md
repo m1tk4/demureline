@@ -1,5 +1,18 @@
-PureLine - A Pure Bash Powerline PS1 Command Prompt
+DemureLine - A Pure Bash Powerline PS1 Command Prompt
 ===================================================
+
+DemureLine is a fork of [Pureline](https://github.com/chris-marsh/pureline), implementing the following additional features:
+
+ - more flexible time formats;
+ - right-justified segments
+
+Demureline looks like this:
+![Screen Sample](https://private-user-images.githubusercontent.com/4673684/401325399-76218549-c959-4261-adaf-59c8291eb01a.png?jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3MzYzNzQ4MDgsIm5iZiI6MTczNjM3NDUwOCwicGF0aCI6Ii80NjczNjg0LzQwMTMyNTM5OS03NjIxODU0OS1jOTU5LTQyNjEtYWRhZi01OWM4MjkxZWIwMWEucG5nP1gtQW16LUFsZ29yaXRobT1BV1M0LUhNQUMtU0hBMjU2JlgtQW16LUNyZWRlbnRpYWw9QUtJQVZDT0RZTFNBNTNQUUs0WkElMkYyMDI1MDEwOCUyRnVzLWVhc3QtMSUyRnMzJTJGYXdzNF9yZXF1ZXN0JlgtQW16LURhdGU9MjAyNTAxMDhUMjIxNTA4WiZYLUFtei1FeHBpcmVzPTMwMCZYLUFtei1TaWduYXR1cmU9YzU5NGNiMjY0Mzc4ODc5N2I4MjBjNTA3ZDk4YWE3ODEzODUwMTVkZDI3OTRkODhkMzU4NTRkZjdiZTFiZmEwYSZYLUFtei1TaWduZWRIZWFkZXJzPWhvc3QifQ.0H2zGHcfk6QOL4nRhK0UPdEhJQQwF7Qc6nNoJlEq42o)
+
+Please see the additional notes on Demureline specific changes under Customization.
+
+
+# Pureline Fundamentals
 
 *__Pureline is currently in development and subject to frequent changes. Updates are likely to change the format of the configuration file and therefore break configuration files from previous versions. Please be aware when updating, it is highly likely you will need to change your config file!__*
 
@@ -94,6 +107,7 @@ All the segments are optional and can be enabled or disabled in a config file.
 
 * Some of the unicode symbols require a special font to be used in your terminal. Please use one of the powerline fonts available at: https://github.com/Lokaltog/powerline-fonts
 
+  * [Fira Code](https://github.com/tonsky/FiraCode)
   * [DejaVu Sans Mono for Powerline](https://github.com/powerline/fonts/tree/master/DejaVuSansMono) is a popular choice
   * The screenshots above use [Hack for Powerline](https://github.com/powerline/fonts/tree/master/Hack)
 
@@ -112,8 +126,8 @@ All the segments are optional and can be enabled or disabled in a config file.
 
 ### Git Clone
 
-    $ git clone https://github.com/chris-marsh/pureline.git
-    $ cp pureline/configs/powerline_full_256col.conf ~/.pureline.conf
+    $ git clone https://github.com/m1tk4/demureline.git
+    $ cp pureline/configs/demureline_right_256col ~/.pureline.conf
 
 * Source the `pureline` script by adding the following line to your `.bashrc` or `.profile`, whichever is used:
 
@@ -139,6 +153,31 @@ Some example configuration files are provided. The config file contains lines wh
         )
 
 To remove a segment, comment or delete the relevant line. You can rearrange the segments in any order you prefer. The first two parameters are background and foreground colors which can be customized. Some segments may have additional options.
+
+### Right-aligned Segments
+
+You can align some of the segents at the right edge of the terminal. To do so,
+add `right_align_segment` and `right_align_end_segment` at the beginning and the end of the part that you want to be right-aligned, for example:
+
+```bash
+PL_SEGMENTS=(
+    # segment                Background  Foreground
+    # -------                ----------  ----------
+    'right_align_segment'
+    'return_code_segment     MyRed       White'
+    'git_segment             MyGreen     Black'
+    'background_jobs_segment MyPurple    White'
+    'duration_segment        MyDarkGrey  White'
+    'time_segment            MyLightGrey Black'
+    'battery_segment         MyBlue      Black'
+    'right_align_end_segment'
+    'user_segment            MyLime      Black'
+    'ssh_segment             MyYellow    Black'
+    'path_segment            MyBlue      Black'
+    'screen_session_segment  MyLightGrey Black'
+```
+*NOTE*: the right-aligned portion has to start either at the beginning of your 
+configuration or immediately following the `newline_segment`.
 
 ### Default Colors
 
@@ -166,6 +205,23 @@ You can also define your own custom colors in the config file;
     PL_COLORS[On_DarkGrey]='\[\e[48;5;240m\]'      # 256 Col Dark Grey Background
 
 The colors must be defined in pairs of background and foreground colors. 
+
+### Wide Unicode Characters and Right-Aligned Segments
+
+Right-aligned segment positioning relies on a calculation of its length in
+characters. When Unicode characters are used in your segments, certain fonts
+may render these characters using 2 characters of space, while the string length
+will only be incremented by one. 
+
+Unfortunately, this is specific to both your terminal and the font used.
+
+If you find that right-aligned segments containing these characters are 
+broken, add the characters you use to the `PL_WIDE_SYMBOLS` variable in your
+customs segment main scope. For example:
+
+```
+PL_WIDE_SYMBOLS+="💻"
+```
 
 ## Developing New Segments
 
