@@ -22,7 +22,7 @@ function ssh_segment {
             if [ "$PL_SSH_USE_IP" = true ]; then
                 content+=" $(ip_address)"
             else
-                content+=" \h"
+                content+=" $(hostname)"
             fi
         fi
         PS1+="$(segment_end "$fg_color" "$bg_color")"
