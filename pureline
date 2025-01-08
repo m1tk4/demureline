@@ -14,17 +14,35 @@ unset PL_SEGMENTS; declare -a PL_SEGMENTS  # Array to hold segments and their ar
 function segment_end {
     local end_char
     local fg
-    if [ "$__last_color" == "$2" ]; then
-        # segment colors are the same, use a foreground separator
-        end_char="${PL_SYMBOLS[soft_separator]}"
-        fg="$1"
-    else
-        # segment colors are different, use a background separator
-        end_char="${PL_SYMBOLS[hard_separator]}"
-        fg="$__last_color"
-    fi
-    if [ -n "$__last_color" ]; then
-        echo "${PL_COLORS[$fg]}${PL_COLORS[On_$2]}$end_char"
+    if [ "$__right_align_segment" == "" ]; then # regular segment, right facing arrows
+        if [ "$__last_color" == "$2" ]; then
+            # segment colors are the same, use a foreground separator
+            end_char="${PL_SYMBOLS[soft_separator]}"
+            fg="$1"
+        else
+            # segment colors are different, use a background separator
+            end_char="${PL_SYMBOLS[hard_separator]}"
+            fg="$__last_color"
+        fi
+        if [ -n "$__last_color" ]; then
+            echo "${PL_COLORS[$fg]}${PL_COLORS[On_$2]}$end_char"
+        fi
+    else # right-aligned segment, reverse arrows
+        if [ "$__last_color" == "$2" ]; then
+            # segment colors are the same, use a foreground separator
+            end_char="${PL_SYMBOLS[soft_separator]}"
+            fg="$1"
+        else
+            # segment colors are different, use a background separator
+            end_char="${PL_SYMBOLS[hard_separator]}"
+            fg="$2"
+        fi
+        if [ -n "$__last_color" ]; then
+            echo "${PL_COLORS[$fg]}${PL_COLORS[On_$__last_color]}$end_char"
+        else
+            echo "${PL_COLORS[$fg]}${PL_COLORS[On_Default]}$end_char"
+        fi
+
     fi
 }
 
@@ -34,7 +52,6 @@ function segment_end {
 # arg: $2 background color
 # arg: $3 content
 function segment_content {
-    __last_color="$2"
     echo "${PL_COLORS[$1]}${PL_COLORS[On_$2]}$3"
 }
 
@@ -70,15 +87,23 @@ function prompt_char {
 # arg: $1 background color
 # arg: $2 foreground color
 # optional variables;
-#   PL_TIME_SHOW_SECONDS: true/false for hh:mm:ss / hh:mm
+#   PL_TIME_FORMAT: date/time format suitable for 'date' command
+#   PL_TIME_SHOW_SECONDS: true/false for hh:mm:ss / hh:mm, if PL_TIME_FORMAT is
+#                         not set (legacy configs)
 function time_segment {
     local bg_color="$1"
     local fg_color="$2"
-    if [ "$PL_TIME_SHOW_SECONDS" = true ]; then
-        local content="\t"
+
+    if [ "$PL_TIME_FORMAT" = "" ]; then
+        if [ "$PL_TIME_SHOW_SECONDS" = true ]; then
+            local time_format="%H:%M:%S" # HH:MM:SS
+        else
+            local time_format="%H:%M"
+        fi
     else
-        local content="\A"
+        local time_format="$PL_TIME_FORMAT"
     fi
+    local content=`date "+$time_format"`
     PS1+="$(segment_end "$fg_color" "$bg_color")"
     PS1+="$(segment_content "$fg_color" "$bg_color" " $content ")"
     __last_color="$bg_color"
@@ -94,13 +119,13 @@ function time_segment {
 function user_segment {
     local bg_color="$1"
     local fg_color="$2"
-    local content="\u"
+    local content="`whoami`"
     # Show host if true or when user is remote/root
     if [ "$PL_USER_SHOW_HOST" = true ]; then
         if [ "$PL_USER_USE_IP" = true ]; then
             content+="@$(ip_address)"
         else
-            content+="@\h"
+            content+="@`hostname`"
         fi
     fi
     PS1+="$(segment_end "$fg_color" "$bg_color")"
@@ -226,6 +251,42 @@ function newline_segment {
 }
 
 # -----------------------------------------------------------------------------
+# start the right-aligned portion of the prompt
+function right_align_segment {
+    # Save the $PS1 portion we have so far
+    __right_align_segment="1"
+    __right_align_ps1_save=$PS1
+    PS1=""
+    # Swap the separator characters
+    __right_align_hard_save="${PL_SYMBOLS[hard_separator]}"
+    PL_SYMBOLS[hard_separator]="${PL_SYMBOLS[hard_separator_r]}"
+    __right_align_soft_save="${PL_SYMBOLS[soft_separator]}"
+    PL_SYMBOLS[soft_separator]="${PL_SYMBOLS[soft_separator_r]}"
+}
+
+# -----------------------------------------------------------------------------
+# ends the right-aligned portion of the prompt
+function right_align_end_segment {
+
+    [ -n "$__right_align_segment" ] || return 0 # bail if we are not in right align mode
+    
+    # calculate offset based on printable character count (erase control chars), and shift what we got by that
+    # we will also take into account the characters that occupy 2 spaces - those should be listed in PL_WIDE_SYMBOLS
+    local PS1_printable=$(echo "$PS1" | sed -E 's/\\\[[^]]*]//g' | sed -E 's/\\\\/\\/g' | sed 's/\(['$PL_WIDE_SYMBOLS']\)/\1!/g' )
+    local indent=$(($COLUMNS-${#PS1_printable}))
+    local indent_sequence="\\[\\e[${indent}C\\]"
+
+    PS1="${__right_align_ps1_save}${indent_sequence}${PS1}\r"
+
+    # Restore the separator characters
+    PL_SYMBOLS[hard_separator]="$__right_align_hard_save"
+    PL_SYMBOLS[soft_separator]="$__right_align_soft_save"
+
+    unset __last_color
+    unset __right_align_segment
+}
+
+# -----------------------------------------------------------------------------
 # code to run before processing the inherited $PROMPT_COMMAND
 function __pureline_pre {
     __return_code=$?                    # save return code of last command
@@ -304,13 +365,16 @@ function set_default_colors() {
 function set_default_symbols {
     PL_SYMBOLS=(
         [hard_separator]="▶"
+        [hard_separator_r]="◀"
         [soft_separator]="│"
+        [soft_separator_r]="│"
 
         [read_only]="Θ"
         [return_code]="x"
         [background_jobs]="↨"
         [background_jobs]="↔"
     )
+    PL_WIDE_SYMBOLS="💻⏳⚡☁🛜"
 }
 
 # -----------------------------------------------------------------------------
