@@ -102,13 +102,13 @@ function time_segment {
 function user_segment {
     local bg_color="$1"
     local fg_color="$2"
-    local content="\u"
+    local content="`whoami`"
     # Show host if true or when user is remote/root
     if [ "$PL_USER_SHOW_HOST" = true ]; then
         if [ "$PL_USER_USE_IP" = true ]; then
             content+="@$(ip_address)"
         else
-            content+="@\h"
+            content+="@`hostname`"
         fi
     fi
     PS1+="$(segment_end "$fg_color" "$bg_color")"
