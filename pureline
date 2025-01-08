@@ -70,15 +70,23 @@ function prompt_char {
 # arg: $1 background color
 # arg: $2 foreground color
 # optional variables;
-#   PL_TIME_SHOW_SECONDS: true/false for hh:mm:ss / hh:mm
+#   PL_TIME_FORMAT: date/time format suitable for 'date' command
+#   PL_TIME_SHOW_SECONDS: true/false for hh:mm:ss / hh:mm, if PL_TIME_FORMAT is
+#                         not set (legacy configs)
 function time_segment {
     local bg_color="$1"
     local fg_color="$2"
-    if [ "$PL_TIME_SHOW_SECONDS" = true ]; then
-        local content="\t"
+
+    if [ "$PL_TIME_FORMAT" = "" ]; then
+        if [ "$PL_TIME_SHOW_SECONDS" = true ]; then
+            local time_format="%H:%M:%S" # HH:MM:SS
+        else
+            local time_format="%H:%M"
+        fi
     else
-        local content="\A"
+        local time_format="$PL_TIME_FORMAT"
     fi
+    local content=`date "+$time_format"`
     PS1+="$(segment_end "$fg_color" "$bg_color")"
     PS1+="$(segment_content "$fg_color" "$bg_color" " $content ")"
     __last_color="$bg_color"
